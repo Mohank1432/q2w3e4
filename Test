@@ -1,19 +1,7 @@
-To: All CyberArk EPM Users (EMEA & OCA Regions)
-Subject: ACTION NOTIFIED: Scheduled Security Infrastructure Update – CyberArk EPM Agent v25.12.0.2827
-Dear Colleague,
-To maintain the highest standards of endpoint security and system stability, the IT Infrastructure and Security team will be performing a mandatory version upgrade to the CyberArk Endpoint Privilege Manager (EPM) agent.
-This enterprise-wide update aligns with our commitment to leveraging the latest security features and performance enhancements across our global workstation fleet.
-Deployment Schedule
- * Start Date: Monday, March 2, 2026
- * End Date: Friday, March 6, 2026
-Scope and Impact
-This upgrade targets all Windows workstations within the EMEA and OCA regions. Please note the following regarding your user experience:
- * Silent Installation: The upgrade is classified as a "low-noise" event. It will be deployed automatically via the EPM Cloud Console and will run in the background.
- * No Service Interruption: Your current applications and workflows will remain unaffected. No manual interaction or confirmation is required during the installation process.
- * Recommended Action: While a system reboot is not forced by this update, we strongly recommend a standard restart of your device at the end of your business day during this window to ensure all security patches are fully initialized.
-Support
-Our monitoring systems will track the success rate of this deployment throughout the 5-day window. If you encounter any unexpected behavior or have questions regarding this security update, please contact the IT Service Desk and reference "CyberArk EPM Agent Upgrade."
-We appreciate your cooperation as we continue to strengthen our corporate security posture.
-Best regards,
-Enterprise IT Security & Operations
-Next Step: Would you like me to draft a brief IT Status Update for your management team to summarize the expected success and monitoring plan for this 5-day window?
+Frequently Asked Questions
+What is the recommendation for me?
+You can continue to work as usual. While the update runs silently in the background and does not force a restart, we recommend a standard reboot of your laptop at the end of your workday to ensure all security patches are fully initialized.
+Do I need to do anything?
+No. The installation is fully automated and requires no manual action. There will be no interruption to your applications or network connectivity during the process.
+Who should I contact if I have issues?
+Our team will be monitoring the deployment progress via the EPM Dashboard. If you experience any technical difficulties, please contact the IT Service Desk and reference the "CyberArk Agent Upgrade."

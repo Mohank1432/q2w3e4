@@ -1,7 +1,32 @@
-Frequently Asked Questions
-What is the recommendation for me?
-You can continue to work as usual. While the update runs silently in the background and does not force a restart, we recommend a standard reboot of your laptop at the end of your workday to ensure all security patches are fully initialized.
-Do I need to do anything?
-No. The installation is fully automated and requires no manual action. There will be no interruption to your applications or network connectivity during the process.
-Who should I contact if I have issues?
-Our team will be monitoring the deployment progress via the EPM Dashboard. If you experience any technical difficulties, please contact the IT Service Desk and reference the "CyberArk Agent Upgrade."
+# --- Configuration ---
+$DispatcherURL = "https://na206.epm.cyberark.com"
+$AccountName   = "YOUR_ACCOUNT_NAME" # As seen in your EPM URL
+$UserName      = "YOUR_EPM_USERNAME"
+$Password      = "YOUR_PASSWORD"
+
+# --- Authentication ---
+$authUrl = "$DispatcherURL/EPM/API/Auth/EPM/Logon"
+$headers = @{
+    "EPM-Account"  = $AccountName
+    "Content-Type" = "application/json"
+}
+$body = @{
+    "Username"      = $UserName
+    "Password"      = $Password
+    "ApplicationId" = "EPM_API_Test"
+} | ConvertTo-Json
+
+try {
+    Write-Host "Attempting to authenticate with $authUrl..." -ForegroundColor Cyan
+    $response = Invoke-RestMethod -Method Post -Uri $authUrl -Headers $headers -Body $body
+    
+    # The response for a successful EPM login is a raw string (the token)
+    $sessionToken = $response
+    Write-Host "Success! Session Token received." -ForegroundColor Green
+    Write-Host "Token: $sessionToken" -ForegroundColor Gray
+}
+catch {
+    Write-Host "Error occurred:" -ForegroundColor Red
+    $_.Exception.Message
+    $_.ErrorDetails.Message | ConvertTo-Json
+}

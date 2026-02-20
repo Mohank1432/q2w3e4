@@ -1,52 +1,43 @@
 # --- Configuration ---
-$EpmServer = "na207.epm.cyberark.com" # Updated to your specific dispatcher
-$AppId     = "API_Automation"        # You can keep this as is
-$Username  = "Your_Local_EPM_User"   # The EPM user you created manually
-$Password  = 'Your_Local_Password'   # Use single quotes to handle special characters
+$EpmServer = "na207.epm.cyberark.com" # Your specific dispatcher
+$SAMLResponse = "PHNhbWxwOl... (Your very long Base64 string from IdP)"
 
-# --- 1. Authentication (Login to Dispatcher) ---
-$AuthUrl = "https://$EpmServer/EPM/API/Auth/EPM/Logon"
-$AuthBody = @{
-    Username      = $Username
-    Password      = $Password
-    ApplicationId = $AppId
-} | ConvertTo-Json
+# --- 1. Exchange SAML Response for EPM Token ---
+$SamlUrl = "https://$EpmServer/SAML/Logon"
+
+# SAML authentication requires Form Data (application/x-www-form-urlencoded)
+$Body = @{
+    SAMLResponse = $SAMLResponse
+}
 
 try {
-    Write-Host "Connecting to Dispatcher: $EpmServer..." -ForegroundColor Cyan
-    # Perform the logon request
-    $AuthResponse = Invoke-RestMethod -Uri $AuthUrl -Method Post -Body $AuthBody -ContentType "application/json"
+    Write-Host "Exchanging SAML Response for EPM Session..." -ForegroundColor Cyan
+    # Note: Use -ContentType to ensure the server parses the form data correctly
+    $AuthResponse = Invoke-RestMethod -Uri $SamlUrl -Method Post -Body $Body -ContentType "application/x-www-form-urlencoded"
     
-    # Capture the specific ManagerURL assigned to your session
+    # Extract the token and the specific Manager URL
     $SessionToken = $AuthResponse.EPMAuthenticationResult
     $ManagerUrl   = $AuthResponse.ManagerURL 
     
-    Write-Host "Authentication Successful!" -ForegroundColor Green
-    Write-Host "Redirected to Manager: $ManagerUrl" -ForegroundColor Gray
+    Write-Host "SAML Authentication Successful!" -ForegroundColor Green
+    Write-Host "Manager URL: $ManagerUrl" -ForegroundColor Gray
 }
 catch {
-    Write-Host "Authentication Failed!" -ForegroundColor Red
-    # [cite_start]Display detailed error message for troubleshooting [cite: 31, 32]
+    Write-Host "SAML Authentication Failed. Check if the SAML response has expired." -ForegroundColor Red
     $Err = $_.Exception.Message
-    if ($_.ErrorDetails) { $Err += " - " + ($_.ErrorDetails | ConvertFrom-Json).ErrorMessage }
+    if ($_.ErrorDetails) { $Err += " - " + $_.ErrorDetails }
     Write-Host "Reason: $Err" -ForegroundColor Yellow
     return
 }
 
-# --- 2. Sample Action (Call Manager URL) ---
+# --- 2. Action (Call Manager URL) ---
 $Headers = @{
-    "Authorization" = "basic $SessionToken" # Must be lowercase "basic"
+    "Authorization" = "basic $SessionToken" # Still uses "basic " lowercase prefix
     "Content-Type"  = "application/json"
 }
 
-try {
-    # Get the list of Sets using the dynamic ManagerUrl
-    $SetsUrl = "$ManagerUrl/EPM/API/Sets"
-    $SetsResponse = Invoke-RestMethod -Uri $SetsUrl -Method Get -Headers $Headers
-    
-    Write-Host "Available EPM Sets:" -ForegroundColor Cyan
-    $SetsResponse.Sets | Format-Table Name, SetId, Description
-}
-catch {
-    Write-Host "API Call Failed. Ensure you have 'Allow to manage sets' permission." -ForegroundColor Red
-}
+$SetsUrl = "$ManagerUrl/EPM/API/Sets"
+$SetsResponse = Invoke-RestMethod -Uri $SetsUrl -Method Get -Headers $Headers
+
+Write-Host "Connected successfully. Sets found: $($SetsResponse.Sets.Count)" -ForegroundColor Cyan
+$SetsResponse.Sets | Format-Table Name, SetId

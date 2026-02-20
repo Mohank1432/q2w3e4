@@ -1,8 +1,8 @@
 # --- Configuration ---
-$EpmServer = "na171.epm.cyberark.com" # Your Dispatcher URL
-$AppId     = "My_Automation_Tool"     # Your custom Application ID
-$Username  = "Your_EPM_User"           # EPM User created in Step 1
-$Password  = "Your_Password"           # EPM User Password
+$EpmServer = "na207.epm.cyberark.com" # Updated to your specific dispatcher
+$AppId     = "API_Automation"        # You can keep this as is
+$Username  = "Your_Local_EPM_User"   # The EPM user you created manually
+$Password  = 'Your_Local_Password'   # Use single quotes to handle special characters
 
 # --- 1. Authentication (Login to Dispatcher) ---
 $AuthUrl = "https://$EpmServer/EPM/API/Auth/EPM/Logon"
@@ -14,45 +14,39 @@ $AuthBody = @{
 
 try {
     Write-Host "Connecting to Dispatcher: $EpmServer..." -ForegroundColor Cyan
+    # Perform the logon request
     $AuthResponse = Invoke-RestMethod -Uri $AuthUrl -Method Post -Body $AuthBody -ContentType "application/json"
     
-    # IMPORTANT: Use the ManagerURL returned by the server, NOT the Dispatcher URL
+    # Capture the specific ManagerURL assigned to your session
     $SessionToken = $AuthResponse.EPMAuthenticationResult
     $ManagerUrl   = $AuthResponse.ManagerURL 
     
-    Write-Host "Login Successful!" -ForegroundColor Green
-    Write-Host "Assigned Manager URL: $ManagerUrl" -ForegroundColor Gray
+    Write-Host "Authentication Successful!" -ForegroundColor Green
+    Write-Host "Redirected to Manager: $ManagerUrl" -ForegroundColor Gray
 }
 catch {
-    Write-Host "Authentication Failed. Please check credentials and Dispatcher URL." -ForegroundColor Red
-    Write-Error $_
+    Write-Host "Authentication Failed!" -ForegroundColor Red
+    # [cite_start]Display detailed error message for troubleshooting [cite: 31, 32]
+    $Err = $_.Exception.Message
+    if ($_.ErrorDetails) { $Err += " - " + ($_.ErrorDetails | ConvertFrom-Json).ErrorMessage }
+    Write-Host "Reason: $Err" -ForegroundColor Yellow
     return
 }
 
-# --- 2. Action (Call Manager URL) ---
-# Example: Retrieving EPM Sets
-$TargetUrl = "$ManagerUrl/EPM/API/Sets"
-
-# Authorization header must be lowercase "basic " followed by the token
+# --- 2. Sample Action (Call Manager URL) ---
 $Headers = @{
-    "Authorization" = "basic $SessionToken"
+    "Authorization" = "basic $SessionToken" # Must be lowercase "basic"
     "Content-Type"  = "application/json"
 }
 
 try {
-    Write-Host "Fetching data from Manager..." -ForegroundColor Cyan
-    $DataResponse = Invoke-RestMethod -Uri $TargetUrl -Method Get -Headers $Headers
+    # Get the list of Sets using the dynamic ManagerUrl
+    $SetsUrl = "$ManagerUrl/EPM/API/Sets"
+    $SetsResponse = Invoke-RestMethod -Uri $SetsUrl -Method Get -Headers $Headers
     
-    # Display the results
-    if ($DataResponse.Sets) {
-        $DataResponse.Sets | Format-Table -Property Name, SetId, Description
-    } else {
-        Write-Host "No sets found or unexpected response format." -ForegroundColor Yellow
-        $DataResponse | ConvertTo-Json
-    }
+    Write-Host "Available EPM Sets:" -ForegroundColor Cyan
+    $SetsResponse.Sets | Format-Table Name, SetId, Description
 }
 catch {
-    # If this fails with the same error, ensure $ManagerUrl is being used
-    Write-Host "Action Failed. Ensure you are not bypassing the Manager URL." -ForegroundColor Red
-    Write-Error $_
+    Write-Host "API Call Failed. Ensure you have 'Allow to manage sets' permission." -ForegroundColor Red
 }

@@ -1,32 +1,49 @@
 # --- Configuration ---
-$DispatcherURL = "https://na206.epm.cyberark.com"
-$AccountName   = "YOUR_ACCOUNT_NAME" # As seen in your EPM URL
-$UserName      = "YOUR_EPM_USERNAME"
-$Password      = "YOUR_PASSWORD"
+$EpmServer = "na171.epm.cyberark.com" # Replace with your Dispatcher URL
+$AppId = "My_PowerShell_Automation"   # Your custom Application ID
+$Username = "Your_EPM_User"           # Your EPM Username
+$Password = "Your_Password"           # Your EPM Password
 
-# --- Authentication ---
-$authUrl = "$DispatcherURL/EPM/API/Auth/EPM/Logon"
-$headers = @{
-    "EPM-Account"  = $AccountName
-    "Content-Type" = "application/json"
-}
-$body = @{
-    "Username"      = $UserName
-    "Password"      = $Password
-    "ApplicationId" = "EPM_API_Test"
+# --- 1. Authentication Request ---
+$AuthUrl = "https://$EpmServer/EPM/API/Auth/EPM/Logon"
+$AuthBody = @{
+    Username = $Username
+    Password = $Password
+    ApplicationId = $AppId
 } | ConvertTo-Json
 
 try {
-    Write-Host "Attempting to authenticate with $authUrl..." -ForegroundColor Cyan
-    $response = Invoke-RestMethod -Method Post -Uri $authUrl -Headers $headers -Body $body
+    Write-Host "Authenticating with EPM..." -ForegroundColor Cyan
+    $AuthResponse = Invoke-RestMethod -Uri $AuthUrl -Method Post -Body $AuthBody -ContentType "application/json"
     
-    # The response for a successful EPM login is a raw string (the token)
-    $sessionToken = $response
-    Write-Host "Success! Session Token received." -ForegroundColor Green
-    Write-Host "Token: $sessionToken" -ForegroundColor Gray
+    # Extract the token and Manager URL
+    $SessionToken = $AuthResponse.EPMAuthenticationResult
+    $ManagerUrl = $AuthResponse.ManagerURL
+    
+    Write-Host "Authentication Successful!" -ForegroundColor Green
 }
 catch {
-    Write-Host "Error occurred:" -ForegroundColor Red
-    $_.Exception.Message
-    $_.ErrorDetails.Message | ConvertTo-Json
+    Write-Error "Authentication Failed: $_"
+    return
+}
+
+# --- 2. Using the Token for API Actions ---
+# Example: Fetching the list of EPM Sets
+$SetsUrl = "$ManagerUrl/EPM/API/Sets"
+
+# The Authorization header must be "basic " (lowercase) followed by the token
+$Headers = @{
+    "Authorization" = "basic $SessionToken"
+    "Content-Type"  = "application/json"
+}
+
+try {
+    Write-Host "Fetching EPM Sets..." -ForegroundColor Cyan
+    $SetsResponse = Invoke-RestMethod -Uri $SetsUrl -Method Get -Headers $Headers
+    
+    # Output the results
+    $SetsResponse.Sets | Format-Table -Property Name, SetId, Description
+}
+catch {
+    Write-Error "Failed to fetch Sets: $_"
 }
